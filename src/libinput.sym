@@ -305,3 +305,7 @@ LIBINPUT_1.14 {
 	libinput_event_tablet_tool_size_major_has_changed;
 	libinput_event_tablet_tool_size_minor_has_changed;
 } LIBINPUT_1.11;
+
+LIBINPUT_1.15 {
+	libinput_device_config_accel_set_curve_point;
+} LIBINPUT_1.14;

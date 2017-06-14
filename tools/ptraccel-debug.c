@@ -226,6 +226,7 @@ main(int argc, char **argv)
 	const char *filter_type = "linear";
 	accel_profile_func_t profile = NULL;
 	double tp_multiplier = 1.0;
+	const char *curve_points = NULL;
 
 	enum {
 		OPT_HELP = 1,
@@ -236,6 +237,7 @@ main(int argc, char **argv)
 		OPT_SPEED,
 		OPT_DPI,
 		OPT_FILTER,
+		OPT_CURVE_POINTS,
 	};
 
 	while (1) {
@@ -250,6 +252,7 @@ main(int argc, char **argv)
 			{"speed", 1, 0, OPT_SPEED },
 			{"dpi", 1, 0, OPT_DPI },
 			{"filter", 1, 0, OPT_FILTER },
+			{"curve-points", 1, 0, OPT_CURVE_POINTS },
 			{0, 0, 0, 0}
 		};
 
@@ -307,6 +310,9 @@ main(int argc, char **argv)
 		case OPT_FILTER:
 			filter_type = optarg;
 			break;
+		case OPT_CURVE_POINTS:
+			curve_points = optarg;
+			break;
 		default:
 			usage();
 			exit(1);
@@ -335,6 +341,24 @@ main(int argc, char **argv)
 		filter = create_pointer_accelerator_filter_trackpoint(tp_multiplier,
 								      use_averaging);
 		profile = trackpoint_accel_profile;
+	} else if (streq(filter_type, "custom-speed")) {
+		struct key_value_double *points;
+		ssize_t npoints;
+
+		filter = create_pointer_accelerator_filter_custom_device_speed();
+		profile = custom_accel_profile;
+
+		npoints = kv_double_from_string(curve_points, ";", ":", &points);
+		if (npoints <= 0)
+			return 1;
+
+		for (ssize_t idx = 0; idx < npoints; idx++){
+			filter_set_curve_point(filter,
+					       points[idx].key,
+					       points[idx].value);
+		}
+
+		free(points);
 	} else {
 		fprintf(stderr, "Invalid filter type %s\n", filter_type);
 		return 1;

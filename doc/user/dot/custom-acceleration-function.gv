@@ -1,0 +1,22 @@
+digraph
+{
+	rankdir="LR";
+	node [shape="box";]
+	subgraph cluster0 {
+		history[shape=record,label="<f0> delta(t-1)|<f1> delta(t-2)|<f2> delta(t-3)| <f3> ..."];
+		label = "motion history";
+	}
+	delta[label="delta"];
+	velocity[shape="ellipse"];
+	factor[shape="ellipse"];
+	accel[label="accelerated delta"];
+	curve[label="acceleration curve"];
+
+	delta->velocity;
+	delta->factor;
+	factor->accel;
+	history->velocity;
+
+	velocity->curve;
+	curve->factor;
+}

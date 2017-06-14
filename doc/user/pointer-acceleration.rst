@@ -196,3 +196,53 @@ Pointer acceleration on tablets
 Pointer acceleration for relative motion on tablet devices is a flat
 acceleration, with the speed setting slowing down or speeding up the pointer
 motion by a constant factor. Tablets do not allow for switchable profiles.
+
+
+------------------------------------------------------------------------------
+Speed-dependent acceleration curve
+------------------------------------------------------------------------------
+
+When the **LIBINPUT_CONFIG_ACCEL_PROFILE_DEVICE_SPEED_CURVE** profile is
+selected, it is the caller's responsibility to load an acceleration profile
+into the device that maps the device's movement into an accelerated
+movement.
+
+This profile maps input speed in **device units** to an acceleration
+factor. libinput calculates the device's speed based on the deltas and their
+timestamps and applies the factor provided by the acceleration profile to
+the current delta.
+
+.. note:: This profile uses data in device units, an acceleration curve
+	  loaded by the caller only applies to that device and will not
+	  behave the same way for other devices.
+
+.. graphviz:: custom-acceleration-function.gv
+
+For example, assume the current delta is ``(2, 4)`` which maps to a current
+movement velocity of 10 units per microsecond. libinput looks up the custom
+acceleration function for 10 which may return 3. The accelerated delta thus
+becomes ``(6, 12)``.
+
+The profile itself is a curve defined by a number of points on the curve
+mapping speed to an acceleration factor. Between each two curve points,
+libinput provides linear interpolation, most acceleration profiles will thus
+only need to provide a handful of curve points. The following illustration
+shows the acceleration curve defined for the points ``(10, 0.25)``, ``(20,
+0.4)`` and ``(35, 3.0)``.
+
+.. figure:: ptraccel-curve-example.svg
+    :align: center
+
+    Interpolation of the acceleration curve for three defined points
+
+As seen in the picture above: given an acceleration factor ``f(x)`` and a curve
+defined by the caller for the points ``a``, ``b``, and ``c`` where ``a < b <
+c``:
+
+- if x <= a, f(x) == f(a)
+- if x >= c, f(x) == f(c)
+- if a < x < b: f(x) == the the linear interpolation value between f(a) and f(b)
+- if b < x < c: f(x) == the the linear interpolation value between f(b) and f(c)
+
+The behavior of a a curve is implementation-defined until the caller sets
+curve points.

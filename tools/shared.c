@@ -211,6 +211,8 @@ tools_parse_option(int option,
 			options->profile = LIBINPUT_CONFIG_ACCEL_PROFILE_ADAPTIVE;
 		else if (streq(optarg, "flat"))
 		      options->profile = LIBINPUT_CONFIG_ACCEL_PROFILE_FLAT;
+		else if (streq(optarg, "custom-speed"))
+		      options->profile = LIBINPUT_CONFIG_ACCEL_PROFILE_DEVICE_SPEED_CURVE;
 		else
 		      return 1;
 		break;
@@ -231,6 +233,17 @@ tools_parse_option(int option,
 			 sizeof(options->match),
 			 "%s",
 			 optarg);
+		break;
+	case OPT_CURVE_POINTS:
+		if (!optarg)
+			return 1;
+
+		options->ncurve_points = kv_double_from_string(
+						optarg,
+						";", ":",
+						&options->curve_points);
+		if (options->ncurve_points < 0)
+			return 1;
 		break;
 	}
 
@@ -414,6 +427,16 @@ tools_device_apply_config(struct libinput_device *device,
 		if (options->profile != LIBINPUT_CONFIG_ACCEL_PROFILE_NONE)
 			libinput_device_config_accel_set_profile(device,
 								 options->profile);
+	}
+
+	if (libinput_device_config_accel_get_profile(device) ==
+		    LIBINPUT_CONFIG_ACCEL_PROFILE_DEVICE_SPEED_CURVE) {
+		for (ssize_t idx = 0; idx < options->ncurve_points; idx++) {
+			double x = options->curve_points[idx].key,
+			       fx = options->curve_points[idx].value;
+
+			libinput_device_config_accel_set_curve_point(device, x, fx);
+		}
 	}
 }
 

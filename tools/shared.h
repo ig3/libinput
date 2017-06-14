@@ -55,6 +55,7 @@ enum configuration_options {
 	OPT_PROFILE,
 	OPT_DISABLE_SENDEVENTS,
 	OPT_APPLY_TO,
+	OPT_CURVE_POINTS,
 };
 
 #define CONFIGURATION_OPTIONS \
@@ -79,7 +80,8 @@ enum configuration_options {
 	{ "set-profile",               required_argument, 0, OPT_PROFILE }, \
 	{ "set-tap-map",               required_argument, 0, OPT_TAP_MAP }, \
 	{ "set-speed",                 required_argument, 0, OPT_SPEED },\
-	{ "apply-to",                  required_argument, 0, OPT_APPLY_TO }
+	{ "apply-to",                  required_argument, 0, OPT_APPLY_TO }, \
+	{ "set-accel-curve-points",    required_argument, 0, OPT_CURVE_POINTS }
 
 enum tools_backend {
 	BACKEND_NONE,
@@ -104,6 +106,9 @@ struct tools_options {
 	int dwt;
 	enum libinput_config_accel_profile profile;
 	char disable_pattern[64];
+
+	struct key_value_double *curve_points;
+	ssize_t ncurve_points;
 };
 
 void tools_init_options(struct tools_options *options);

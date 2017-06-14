@@ -86,6 +86,7 @@ endforeach
 
 src_rst = files(
 	# dot drawings
+	'dot/custom-acceleration-function.gv',
 	'dot/seats-sketch.gv',
 	'dot/seats-sketch-libinput.gv',
 	'dot/libinput-stack-wayland.gv',
@@ -103,6 +104,7 @@ src_rst = files(
 	'svg/palm-detection.svg',
 	'svg/pinch-gestures.svg',
 	'svg/pinch-gestures-softbuttons.svg',
+	'svg/ptraccel-curve-example.svg',
 	'svg/ptraccel-linear.svg',
 	'svg/ptraccel-low-dpi.svg',
 	'svg/ptraccel-touchpad.svg',
