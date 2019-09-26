@@ -1111,6 +1111,26 @@ evdev_accel_config_set_curve_point(struct libinput_device *libinput_device,
 	return LIBINPUT_CONFIG_STATUS_SUCCESS;
 }
 
+static enum libinput_config_status
+evdev_accel_config_set_constant_factor(struct libinput_device *libinput_device,
+				       double factor)
+{
+	struct evdev_device *device = evdev_device(libinput_device);
+	struct motion_filter *filter = device->pointer.filter;
+
+	if (evdev_accel_config_get_profile(libinput_device) !=
+	    LIBINPUT_CONFIG_ACCEL_PROFILE_DEVICE_SPEED_CURVE)
+		return LIBINPUT_CONFIG_STATUS_INVALID;
+
+	if (!isnormal(factor))
+		return LIBINPUT_CONFIG_STATUS_INVALID;
+
+	if (!filter_set_constant_factor(filter, factor))
+		return LIBINPUT_CONFIG_STATUS_INVALID;
+
+	return LIBINPUT_CONFIG_STATUS_SUCCESS;
+}
+
 void
 evdev_device_init_pointer_acceleration(struct evdev_device *device,
 				       struct motion_filter *filter)
@@ -1129,6 +1149,7 @@ evdev_device_init_pointer_acceleration(struct evdev_device *device,
 		device->pointer.config.get_profile = evdev_accel_config_get_profile;
 		device->pointer.config.get_default_profile = evdev_accel_config_get_default_profile;
 		device->pointer.config.set_curve_point = evdev_accel_config_set_curve_point;
+		device->pointer.config.set_constant_factor = evdev_accel_config_set_constant_factor;
 		device->base.config.accel = &device->pointer.config;
 
 		default_speed = evdev_accel_config_get_default_speed(&device->base);

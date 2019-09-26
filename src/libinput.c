@@ -26,6 +26,7 @@
 
 #include <errno.h>
 #include <inttypes.h>
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -3851,6 +3852,21 @@ libinput_device_config_accel_set_curve_point(
 	}
 
 	return device->config.accel->set_curve_point(device, a, fa);
+}
+
+LIBINPUT_EXPORT enum libinput_config_status
+libinput_device_config_accel_set_constant_factor(struct libinput_device *device,
+					         double factor)
+{
+	if (libinput_device_config_accel_get_profile(device) !=
+		    LIBINPUT_CONFIG_ACCEL_PROFILE_DEVICE_SPEED_CURVE) {
+		return LIBINPUT_CONFIG_STATUS_INVALID;
+	}
+
+	if (!isnormal(factor))
+		return LIBINPUT_CONFIG_STATUS_INVALID;
+
+	return device->config.accel->set_constant_factor(device, factor);
 }
 
 LIBINPUT_EXPORT uint32_t

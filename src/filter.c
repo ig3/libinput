@@ -98,6 +98,15 @@ filter_set_curve_point(struct motion_filter *filter, double a, double fa)
 	return filter->interface->set_curve_point(filter, a, fa);
 }
 
+bool
+filter_set_constant_factor(struct motion_filter *filter, double factor)
+{
+	if (!filter->interface->set_constant_factor)
+		return false;
+
+	return filter->interface->set_constant_factor(filter, factor);
+}
+
 void
 trackers_init(struct pointer_trackers *trackers, int ntrackers)
 {

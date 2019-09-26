@@ -46,6 +46,8 @@ struct motion_filter_interface {
 			  double speed_adjustment);
 	bool (*set_curve_point)(struct motion_filter *filter,
 				double a, double fa);
+	bool (*set_constant_factor)(struct motion_filter *filter,
+				    double factor);
 };
 
 struct motion_filter {

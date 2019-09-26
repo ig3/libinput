@@ -98,6 +98,9 @@ filter_get_speed(struct motion_filter *filter);
 bool
 filter_set_curve_point(struct motion_filter *filter, double a, double fa);
 
+bool
+filter_set_constant_factor(struct motion_filter *filter, double factor);
+
 enum libinput_config_accel_profile
 filter_get_type(struct motion_filter *filter);
 

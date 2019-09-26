@@ -4971,6 +4971,27 @@ enum libinput_config_status
 libinput_device_config_accel_set_curve_point(struct libinput_device *device,
 					     double a, double fa);
 
+
+/**
+ * @ingroup config
+ *
+ * Sets a constant factor to be applied to the device's movements.
+ *
+ * This function must be called after setting the type of the acceleration
+ * to @ref LIBINPUT_CONFIG_ACCEL_PROFILE_DEVICE_SPEED_CURVE.
+ *
+ * The factor provided here is applied to any unaccelerated motion so that a
+ * delta (x, y) results in an unaccelerated motion of (x * factor, y *
+ * factor).
+ *
+ * @return A config status code
+ *
+ * @since 1.15
+ */
+enum libinput_config_status
+libinput_device_config_accel_set_constant_factor(struct libinput_device *device,
+					         double factor);
+
 /**
  * @ingroup config
  *
@@ -4999,6 +5020,8 @@ enum libinput_config_accel_profile {
 	/**
 	 * A custom user-provided profile. See
 	 * libinput_acceleration_profile_set_curve_point() for details.
+	 *
+	 * @since 1.15
 	 */
 	LIBINPUT_CONFIG_ACCEL_PROFILE_DEVICE_SPEED_CURVE = (1 << 2),
 };

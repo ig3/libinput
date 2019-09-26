@@ -43,6 +43,7 @@ struct custom_accelerator {
 	struct motion_filter base;
 	struct acceleration_curve_point points[32];
 	size_t npoints;
+	double constant_factor;
 
 	double last_velocity;
 	struct pointer_trackers trackers;
@@ -130,6 +131,21 @@ custom_accelerator_filter(struct motion_filter *filter,
 	return norm;
 }
 
+static struct normalized_coords
+custom_accelerator_filter_constant(struct motion_filter *filter,
+				   const struct device_float_coords *units,
+				   void *data, uint64_t time)
+{
+	struct custom_accelerator *f =
+		(struct custom_accelerator*)filter;
+	struct normalized_coords norm;
+
+	norm.x = units->x * f->constant_factor;
+	norm.y = units->y * f->constant_factor;
+
+	return norm;
+}
+
 static bool
 custom_accelerator_set_speed(struct motion_filter *filter,
 			     double speed_adjustment)
@@ -192,14 +208,27 @@ custom_accelerator_set_curve_point(struct motion_filter *filter,
 	return true;
 }
 
+static bool
+custom_accelerator_set_constant_factor(struct motion_filter *filter,
+				       double factor)
+{
+	struct custom_accelerator *f =
+		(struct custom_accelerator*)filter;
+
+	f->constant_factor = factor;
+
+	return true;
+}
+
 struct motion_filter_interface accelerator_interface_custom = {
 	.type = LIBINPUT_CONFIG_ACCEL_PROFILE_DEVICE_SPEED_CURVE,
 	.filter = custom_accelerator_filter,
-	.filter_constant = NULL,
+	.filter_constant = custom_accelerator_filter_constant,
 	.restart = NULL,
 	.destroy = custom_accelerator_destroy,
 	.set_speed = custom_accelerator_set_speed,
 	.set_curve_point = custom_accelerator_set_curve_point,
+	.set_constant_factor = custom_accelerator_set_constant_factor,
 };
 
 struct motion_filter *

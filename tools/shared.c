@@ -245,6 +245,12 @@ tools_parse_option(int option,
 		if (options->ncurve_points < 0)
 			return 1;
 		break;
+	case OPT_CONST_FACTOR:
+		if (!optarg)
+			return 1;
+
+		options->constant_factor = atof(optarg);
+		break;
 	}
 
 	return 0;
@@ -437,6 +443,8 @@ tools_device_apply_config(struct libinput_device *device,
 
 			libinput_device_config_accel_set_curve_point(device, x, fx);
 		}
+		libinput_device_config_accel_set_constant_factor(device,
+								 options->constant_factor);
 	}
 }
 

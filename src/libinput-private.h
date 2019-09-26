@@ -247,6 +247,8 @@ struct libinput_device_config_accel {
 	enum libinput_config_accel_profile (*get_default_profile)(struct libinput_device *device);
 	enum libinput_config_status (*set_curve_point)(struct libinput_device *device,
 						       double a, double fa);
+	enum libinput_config_status (*set_constant_factor)(struct libinput_device *device,
+							   double factor);
 };
 
 struct libinput_device_config_natural_scroll {

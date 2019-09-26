@@ -308,4 +308,5 @@ LIBINPUT_1.14 {
 
 LIBINPUT_1.15 {
 	libinput_device_config_accel_set_curve_point;
+	libinput_device_config_accel_set_constant_factor;
 } LIBINPUT_1.14;

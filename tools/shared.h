@@ -56,6 +56,7 @@ enum configuration_options {
 	OPT_DISABLE_SENDEVENTS,
 	OPT_APPLY_TO,
 	OPT_CURVE_POINTS,
+	OPT_CONST_FACTOR,
 };
 
 #define CONFIGURATION_OPTIONS \
@@ -81,7 +82,8 @@ enum configuration_options {
 	{ "set-tap-map",               required_argument, 0, OPT_TAP_MAP }, \
 	{ "set-speed",                 required_argument, 0, OPT_SPEED },\
 	{ "apply-to",                  required_argument, 0, OPT_APPLY_TO }, \
-	{ "set-accel-curve-points",    required_argument, 0, OPT_CURVE_POINTS }
+	{ "set-accel-curve-points",    required_argument, 0, OPT_CURVE_POINTS }, \
+	{ "set-constant-factor",       required_argument, 0, OPT_CONST_FACTOR }
 
 enum tools_backend {
 	BACKEND_NONE,
@@ -109,6 +111,7 @@ struct tools_options {
 
 	struct key_value_double *curve_points;
 	ssize_t ncurve_points;
+	double constant_factor;
 };
 
 void tools_init_options(struct tools_options *options);
