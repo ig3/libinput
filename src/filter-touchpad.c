@@ -117,6 +117,7 @@ accelerator_filter_generic(struct motion_filter *filter,
 						    data,
 						    time);
 
+  fprintf(stderr, "accelerator_filter_generic accel_value: %.6f\n", accel_value);
 	accelerated.x = accel_value * unaccelerated->x;
 	accelerated.y = accel_value * unaccelerated->y;
 
@@ -226,7 +227,7 @@ touchpad_accelerator_destroy(struct motion_filter *filter)
 }
 
 double
-touchpad_accel_profile_linear(struct motion_filter *filter,
+original_touchpad_accel_profile_linear(struct motion_filter *filter,
 			      void *data,
 			      double speed_in, /* in device units/µs */
 			      uint64_t time)
@@ -311,6 +312,56 @@ touchpad_accel_profile_linear(struct motion_filter *filter,
 
 	factor *= accel_filter->speed_factor;
 	return factor * TP_MAGIC_SLOWDOWN;
+}
+
+double
+touchpad_accel_profile_linear(struct motion_filter *filter,
+			      void *data,
+			      double speed_in, /* in device units/µs */
+			      uint64_t time)
+{
+	struct touchpad_accelerator *accel_filter =
+		(struct touchpad_accelerator *)filter;
+
+  const double minimum_factor = 0.05; /* unitless */
+  const double maximum_factor = 0.75; /* unitless */
+  const double lower_threshold = 15.0; /* mm/s */
+  const double upper_threshold = 100.0; /* mm/s */
+
+	double factor; /* unitless */
+
+	/* Convert to mm/s because that's something one can understand */
+	speed_in = v_us2s(speed_in) * 25.4/accel_filter->dpi;
+  fprintf(stderr, "touchpad_accel_profile_linear speed_in: %.5f\n", speed_in);
+
+	/*
+	   Our acceleration function calculates a factor to accelerate input
+	   deltas with. The function is a double incline with a plateau,
+	   with a rough shape like this:
+
+	  accel
+	 factor
+	   ^
+	   |       --------
+	   |      /
+	   |     /
+	   |----/
+	   +-------------> speed in
+
+	*/
+
+	if (speed_in < lower_threshold) {
+		factor = minimum_factor;
+	/* up to the threshold, we keep factor 1, i.e. 1:1 movement */
+	} else if (speed_in < upper_threshold) {
+		factor = minimum_factor +
+      maximum_factor *
+      (speed_in - lower_threshold) / (upper_threshold - lower_threshold);
+	} else {
+    factor = maximum_factor;
+	}
+
+	return factor;
 }
 
 struct motion_filter_interface accelerator_interface_touchpad = {
