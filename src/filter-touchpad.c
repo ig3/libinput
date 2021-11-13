@@ -227,7 +227,7 @@ touchpad_accelerator_destroy(struct motion_filter *filter)
 }
 
 double
-original_touchpad_accel_profile_linear(struct motion_filter *filter,
+touchpad_accel_profile_linear(struct motion_filter *filter,
 			      void *data,
 			      double speed_in, /* in device units/µs */
 			      uint64_t time)
@@ -314,8 +314,61 @@ original_touchpad_accel_profile_linear(struct motion_filter *filter,
 	return factor * TP_MAGIC_SLOWDOWN;
 }
 
+/* Constrained linear is an acceleration profile with lower and
+ * upper limits on the 'acceleration' factor. It returns a factor
+ * that is a function of input speed.
+ *
+ * It has four parameters:
+ *  - minimum factor
+ *  - maximum factor
+ *  - lower threshold
+ *  - upper threshold
+ *
+ * Below the lower threshold the factor is fixed at the minimum factor.
+ * Above the upper threshold the factor is fixed at the maximum factor.
+ * Between the thresholds the factor varies linearly with speed.
+ *
+ *	 accel
+ *	 factor
+ *	   ^
+ *	   |       --------
+ *	   |      /
+ *	   |     /
+ *	   |----/
+ *	   +-------------> speed in
+ *
+ *
+ * Setting minimum and maximum factor to the same value achieves a
+ * constant factor (i.e. no 'acceleration'). In this case, setting 
+ * lower threshold higher than any achievable input speed will
+ * minimize CPU load.
+ *
+ *	 accel
+ *	 factor
+ *	   ^
+ *	   |
+ *	   |-------------
+ *	   |
+ *	   +-------------> speed in
+ *
+ * Setting lower threshold to 0 and upper threshold sufficiently high
+ * the acceleration function becomes, effectively, linear. In fact it
+ * is still limited, but only at input speed so high as to be irrelevant.
+ * Any reasonable slope can be achieved and minimum factor (i.e. factor
+ * at speed 0) can be 0 or higher.
+ *
+ *	 accel
+ *	 factor
+ *	   ^
+ *	   |   /
+ *	   |  /
+ *	   | /
+ *	   |/
+ *	   +-------------> speed in
+ * 
+ */
 double
-touchpad_accel_profile_linear(struct motion_filter *filter,
+touchpad_accel_profile_constrained_linear(struct motion_filter *filter,
 			      void *data,
 			      double speed_in, /* in device units/µs */
 			      uint64_t time)
@@ -323,39 +376,27 @@ touchpad_accel_profile_linear(struct motion_filter *filter,
 	struct touchpad_accelerator *accel_filter =
 		(struct touchpad_accelerator *)filter;
 
+	double factor; /* unitless */
+
+  /* These should be configurable */
   const double minimum_factor = 0.05; /* unitless */
   const double maximum_factor = 0.75; /* unitless */
   const double lower_threshold = 15.0; /* mm/s */
   const double upper_threshold = 100.0; /* mm/s */
 
-	double factor; /* unitless */
+  /* Not necessary for stability, but reasonable constraints */
+	assert(minimum_factor <= maximum_factor);
+  assert(lower_threshold <= upper_threshold);
+
 
 	/* Convert to mm/s because that's something one can understand */
 	speed_in = v_us2s(speed_in) * 25.4/accel_filter->dpi;
-  fprintf(stderr, "touchpad_accel_profile_linear speed_in: %.5f\n", speed_in);
-
-	/*
-	   Our acceleration function calculates a factor to accelerate input
-	   deltas with. The function is a double incline with a plateau,
-	   with a rough shape like this:
-
-	  accel
-	 factor
-	   ^
-	   |       --------
-	   |      /
-	   |     /
-	   |----/
-	   +-------------> speed in
-
-	*/
 
 	if (speed_in < lower_threshold) {
 		factor = minimum_factor;
-	/* up to the threshold, we keep factor 1, i.e. 1:1 movement */
 	} else if (speed_in < upper_threshold) {
 		factor = minimum_factor +
-      maximum_factor *
+      (maximum_factor - minimum_factor) *
       (speed_in - lower_threshold) / (upper_threshold - lower_threshold);
 	} else {
     factor = maximum_factor;
@@ -391,7 +432,7 @@ create_pointer_accelerator_filter_touchpad(int dpi,
 	filter->dpi = dpi;
 
 	filter->base.interface = &accelerator_interface_touchpad;
-	filter->profile = touchpad_accel_profile_linear;
+	filter->profile = touchpad_accel_profile_constrained_linear;
 
 	smoothener = zalloc(sizeof(*smoothener));
 	smoothener->threshold = event_delta_smooth_threshold,

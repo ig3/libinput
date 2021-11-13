@@ -151,6 +151,11 @@ touchpad_accel_profile_linear(struct motion_filter *filter,
 			      double speed_in,
 			      uint64_t time);
 double
+touchpad_accel_profile_constrained_linear(struct motion_filter *filter,
+			      void *data,
+			      double speed_in,
+			      uint64_t time);
+double
 touchpad_lenovo_x230_accel_profile(struct motion_filter *filter,
 				      void *data,
 				      double speed_in,
