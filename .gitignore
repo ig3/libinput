@@ -10,3 +10,4 @@
 *.gcno
 tags
 *.gnuplot
+builddir/
