@@ -2,6 +2,7 @@
  * Copyright © 2006-2009 Simon Thum
  * Copyright © 2012 Jonas Ådahl
  * Copyright © 2014-2015 Red Hat, Inc.
+ * Copyright © 2021 Ian Goodacre
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -117,6 +118,7 @@ accelerator_filter_generic(struct motion_filter *filter,
 						    data,
 						    time);
 
+  fprintf(stderr, "accelerator_filter_generic accel_value: %.6f\n", accel_value);
 	accelerated.x = accel_value * unaccelerated->x;
 	accelerated.y = accel_value * unaccelerated->y;
 
@@ -225,96 +227,70 @@ touchpad_accelerator_destroy(struct motion_filter *filter)
 	free(accel);
 }
 
-double
-touchpad_accel_profile_linear(struct motion_filter *filter,
+/* The piecewise linear acceleration profile allows a simple approximation
+ * to an arbitrary acceleration function.
+ *
+ * It has two parameters:
+ *  - maximum input speed
+ *  - array of acceleration factors
+ *
+ * The acceleration factors are at evenly spaced input speeds from 0 to the
+ * maximum input speed. Between these speeds the acceleration factor is
+ * determined by linear interpolation between the adjacent acceleration
+ * factors.
+ *
+ */
+static double
+touchpad_accel_profile(struct motion_filter *filter,
 			      void *data,
 			      double speed_in, /* in device units/µs */
 			      uint64_t time)
 {
 	struct touchpad_accelerator *accel_filter =
 		(struct touchpad_accelerator *)filter;
-	const double threshold = accel_filter->threshold; /* mm/s */
-	const double baseline = 0.9;
+
 	double factor; /* unitless */
 
-	/* Convert to mm/s because that's something one can understand */
+  /* These should be configurable */
+  const double maximum_input_speed = 200.0; /* mm/s */
+  const double points[] = {
+    0.00,
+    0.20,
+    0.80,
+    1.40,
+    2.00
+  };
+
+  /* the maximum index into the array of points */
+  const int n_max = (int) sizeof(points) / sizeof(double) - 1;
+
+  fprintf(stderr, "filter-touchpad-pl: touchpad_accel_profile %d\n", n_max);
+
+	/* Convert speed_in to mm/s because that's something one can understand */
 	speed_in = v_us2s(speed_in) * 25.4/accel_filter->dpi;
+  fprintf(stderr, "speed_in: %f\n", speed_in);
 
-	/*
-	   Our acceleration function calculates a factor to accelerate input
-	   deltas with. The function is a double incline with a plateau,
-	   with a rough shape like this:
+  /* scale speed_in from [0, maximum_input_speed] to [0, n_max] */
+  speed_in = n_max * speed_in / maximum_input_speed;
+  fprintf(stderr, "scaled speed_in: %f\n", speed_in);
+  
+  if (speed_in < 0) speed_in = 0;
 
-	  accel
-	 factor
-	   ^         ______
-	   |        )
-	   |  _____)
-	   | /
-	   |/
-	   +-------------> speed in
+  const int n = (int)speed_in;
+  const double fraction = speed_in - n;
 
-	   Except the second incline is a curve, but well, asciiart.
+  if (n < n_max) {
+    factor = points[n] + (points[n+1] - points[n]) * fraction;
+  } else {
+    factor = points[n_max];
+  }
 
-	   The first incline is a linear function in the form
-		   y = ax + b
-		   where y is speed_out
-		         x is speed_in
-			 a is the incline of acceleration
-			 b is minimum acceleration factor
-	   for speeds up to the lower threshold, we decelerate, down to 30%
-	   of input speed.
-		   hence 1 = a * 7 + 0.3
-		       0.7 = a * 7  => a := 0.1
-		   deceleration function is thus:
-			y = 0.1x + 0.3
-
-	   The first plateau is the baseline.
-
-	   The second incline is a curve up, based on magic numbers
-	   obtained by trial-and-error.
-
-	   Above the second incline we have another plateau because
-	   by then you're moving so fast that extra acceleration doesn't
-	   help.
-
-	  Note:
-	  * The minimum threshold is a result of trial-and-error and
-	    has no other special meaning.
-	  * 0.3 is chosen simply because it is above the Nyquist frequency
-	    for subpixel motion within a pixel.
-	*/
-
-	if (speed_in < 7.0) {
-		factor = min(baseline, 0.1 * speed_in + 0.3);
-	/* up to the threshold, we keep factor 1, i.e. 1:1 movement */
-	} else if (speed_in < threshold) {
-		factor = baseline;
-	} else {
-
-	/* Acceleration function above the threshold is a curve up
-	   to four times the threshold, because why not.
-
-	   Don't assume anything about the specific numbers though, this was
-	   all just trial and error by tweaking numbers here and there, then
-	   the formula was optimized doing basic maths.
-
-	   You could replace this with some other random formula that gives
-	   the same numbers and it would be just as correct.
-
-	 */
-		const double upper_threshold = threshold * 4.0;
-		speed_in = min(speed_in, upper_threshold);
-
-		factor = 0.0025 * (speed_in/threshold) * (speed_in - threshold) + baseline;
-	}
-
-	factor *= accel_filter->speed_factor;
-	return factor * TP_MAGIC_SLOWDOWN;
+  fprintf(stderr, "n: %d, fraction: %f, factor: %f\n", n, fraction, factor);
+	return factor;
 }
 
-struct motion_filter_interface accelerator_interface_touchpad = {
-	.type = LIBINPUT_CONFIG_ACCEL_PROFILE_ADAPTIVE,
+static struct motion_filter_interface accelerator_interface_touchpad = {
+	.type = LIBINPUT_CONFIG_ACCEL_PROFILE_PL,
 	.filter = accelerator_filter_post_normalized,
 	.filter_constant = touchpad_constant_filter,
 	.restart = touchpad_accelerator_restart,
@@ -322,14 +298,20 @@ struct motion_filter_interface accelerator_interface_touchpad = {
 	.set_speed = touchpad_accelerator_set_speed,
 };
 
+/*
+ * I'm guessing this is part of initialization. It's not static,
+ * so should be accessible from outside this module.
+ */
 struct motion_filter *
-create_pointer_accelerator_filter_touchpad(int dpi,
+create_pointer_accelerator_filter_touchpad_pl(int dpi,
 	uint64_t event_delta_smooth_threshold,
 	uint64_t event_delta_smooth_value,
 	bool use_velocity_averaging)
 {
 	struct touchpad_accelerator *filter;
 	struct pointer_delta_smoothener *smoothener;
+
+  fprintf(stderr, "create_pointer_accelerator_filter_touchpad_pl\n");
 
 	filter = zalloc(sizeof *filter);
 	filter->last_velocity = 0.0;
@@ -340,7 +322,7 @@ create_pointer_accelerator_filter_touchpad(int dpi,
 	filter->dpi = dpi;
 
 	filter->base.interface = &accelerator_interface_touchpad;
-	filter->profile = touchpad_accel_profile_linear;
+	filter->profile = touchpad_accel_profile;
 
 	smoothener = zalloc(sizeof(*smoothener));
 	smoothener->threshold = event_delta_smooth_threshold,

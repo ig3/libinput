@@ -1,7 +1,7 @@
 libinput
 ========
 
-This branch is for the purpose of developing an alternate acceleration profile.
+This branch provides a piecewise linear touchpad acceleration profile.
 
 libinput is a library that provides a full input stack for display servers
 and other applications that need to handle input devices provided by the

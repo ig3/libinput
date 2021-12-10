@@ -120,6 +120,12 @@ create_pointer_accelerator_filter_touchpad(int dpi,
 	bool use_velocity_averaging);
 
 struct motion_filter *
+create_pointer_accelerator_filter_touchpad_pl(int dpi,
+	uint64_t event_delta_smooth_threshold,
+	uint64_t event_delta_smooth_value,
+	bool use_velocity_averaging);
+
+struct motion_filter *
 create_pointer_accelerator_filter_touchpad_flat(int dpi);
 
 struct motion_filter *
@@ -147,11 +153,6 @@ pointer_accel_profile_linear(struct motion_filter *filter,
 			     uint64_t time);
 double
 touchpad_accel_profile_linear(struct motion_filter *filter,
-			      void *data,
-			      double speed_in,
-			      uint64_t time);
-double
-touchpad_accel_profile_constrained_linear(struct motion_filter *filter,
 			      void *data,
 			      double speed_in,
 			      uint64_t time);

@@ -5225,6 +5225,12 @@ enum libinput_config_accel_profile {
 	 * on the input speed. This is the default profile for most devices.
 	 */
 	LIBINPUT_CONFIG_ACCEL_PROFILE_ADAPTIVE = (1 << 1),
+
+	/**
+	 * A piecewise linear acceleration profile. Pointer acceleration depends
+	 * on the input speed.
+	 */
+	LIBINPUT_CONFIG_ACCEL_PROFILE_PL = (1 << 2),
 };
 
 /**

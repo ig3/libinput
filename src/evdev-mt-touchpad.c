@@ -2958,6 +2958,21 @@ static enum libinput_config_status
 tp_accel_config_set_profile(struct libinput_device *libinput_device,
 			    enum libinput_config_accel_profile profile);
 
+static uint32_t
+tp_accel_config_get_profiles(struct libinput_device *libinput_device)
+{
+  fprintf(stderr, "tp_accel_config_get_profiles\n");
+  return LIBINPUT_CONFIG_ACCEL_PROFILE_FLAT |
+    LIBINPUT_CONFIG_ACCEL_PROFILE_ADAPTIVE |
+    LIBINPUT_CONFIG_ACCEL_PROFILE_PL;
+}
+
+static enum libinput_config_accel_profile
+tp_accel_config_get_default_profile(struct libinput_device *libinput_device)
+{
+  return LIBINPUT_CONFIG_ACCEL_PROFILE_PL;
+}
+
 static bool
 tp_init_accel(struct tp_dispatch *tp, enum libinput_config_accel_profile which)
 {
@@ -2981,25 +2996,40 @@ tp_init_accel(struct tp_dispatch *tp, enum libinput_config_accel_profile which)
 	tp->accel.y_scale_coeff = (DEFAULT_MOUSE_DPI/25.4) / res_y;
 	tp->accel.xy_scale_coeff = 1.0 * res_x/res_y;
 
+  fprintf(stderr, "tp_init_accel %d\n", which);
 	if (which == LIBINPUT_CONFIG_ACCEL_PROFILE_FLAT)
 		filter = create_pointer_accelerator_filter_touchpad_flat(dpi);
 	else if (evdev_device_has_model_quirk(device, QUIRK_MODEL_LENOVO_X230) ||
 		 tp->device->model_flags & EVDEV_MODEL_LENOVO_X220_TOUCHPAD_FW81)
 		filter = create_pointer_accelerator_filter_lenovo_x230(dpi, use_v_avg);
-	else if (libevdev_get_id_bustype(device->evdev) == BUS_BLUETOOTH)
-		filter = create_pointer_accelerator_filter_touchpad(dpi,
-								    ms2us(50),
-								    ms2us(10),
-								    use_v_avg);
-	else
-		filter = create_pointer_accelerator_filter_touchpad(dpi, 0, 0, use_v_avg);
+  else if (which == LIBINPUT_CONFIG_ACCEL_PROFILE_ADAPTIVE) {
+    fprintf(stderr, "adaptive\n");
+    if (libevdev_get_id_bustype(device->evdev) == BUS_BLUETOOTH)
+      filter = create_pointer_accelerator_filter_touchpad(dpi,
+                      ms2us(50),
+                      ms2us(10),
+                      use_v_avg);
+    else
+      filter = create_pointer_accelerator_filter_touchpad(dpi, 0, 0, use_v_avg);
+  } else {
+    fprintf(stderr, "pl\n");
+    if (libevdev_get_id_bustype(device->evdev) == BUS_BLUETOOTH)
+      filter = create_pointer_accelerator_filter_touchpad_pl(dpi,
+                      ms2us(50),
+                      ms2us(10),
+                      use_v_avg);
+    else
+      filter = create_pointer_accelerator_filter_touchpad_pl(dpi, 0, 0, use_v_avg);
+  }
 
 	if (!filter)
 		return false;
 
 	evdev_device_init_pointer_acceleration(tp->device, filter);
 
+  device->pointer.config.get_profiles = tp_accel_config_get_profiles;
 	device->pointer.config.set_profile = tp_accel_config_set_profile;
+	device->pointer.config.get_default_profile = tp_accel_config_get_default_profile;
 
 	return true;
 }
@@ -3023,6 +3053,8 @@ tp_accel_config_set_profile(struct libinput_device *libinput_device,
 	struct tp_dispatch *tp = tp_dispatch(device->dispatch);
 	struct motion_filter *filter;
 	double speed;
+
+  fprintf(stderr, "tp_accel_config_set_profile\n");
 
 	filter = device->pointer.filter;
 	if (filter_get_type(filter) == profile)
@@ -3638,6 +3670,8 @@ tp_init(struct tp_dispatch *tp,
 {
 	bool use_touch_size = false;
 
+  fprintf(stderr, "tp_init\n");
+
 	tp->base.dispatch_type = DISPATCH_TOUCHPAD;
 	tp->base.interface = &tp_interface;
 	tp->device = device;
@@ -3668,7 +3702,7 @@ tp_init(struct tp_dispatch *tp,
 
 	tp_init_hysteresis(tp);
 
-	if (!tp_init_accel(tp, LIBINPUT_CONFIG_ACCEL_PROFILE_ADAPTIVE))
+	if (!tp_init_accel(tp, LIBINPUT_CONFIG_ACCEL_PROFILE_PL))
 		return false;
 
 	tp_init_tap(tp);
@@ -3870,6 +3904,8 @@ struct evdev_dispatch *
 evdev_mt_touchpad_create(struct evdev_device *device)
 {
 	struct tp_dispatch *tp;
+
+  fprintf(stderr, "evdev_mt_touchpad_create\n");
 
 	evdev_tag_touchpad(device, device->udev_device);
 

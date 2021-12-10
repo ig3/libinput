@@ -1230,13 +1230,15 @@ evdev_accel_config_get_default_speed(struct libinput_device *device)
 static uint32_t
 evdev_accel_config_get_profiles(struct libinput_device *libinput_device)
 {
+  fprintf(stderr, "evdev_accel_config_get_profiles\n");
 	struct evdev_device *device = evdev_device(libinput_device);
 
 	if (!device->pointer.filter)
 		return LIBINPUT_CONFIG_ACCEL_PROFILE_NONE;
 
 	return LIBINPUT_CONFIG_ACCEL_PROFILE_ADAPTIVE |
-		LIBINPUT_CONFIG_ACCEL_PROFILE_FLAT;
+		LIBINPUT_CONFIG_ACCEL_PROFILE_FLAT |
+		LIBINPUT_CONFIG_ACCEL_PROFILE_PL;
 }
 
 static enum libinput_config_status
