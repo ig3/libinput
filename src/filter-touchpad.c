@@ -379,9 +379,9 @@ touchpad_accel_profile_constrained_linear(struct motion_filter *filter,
 	double factor; /* unitless */
 
   /* These should be configurable */
-  const double minimum_factor = 0.05; /* unitless */
+  const double minimum_factor = 0.02; /* unitless */
   const double maximum_factor = 0.75; /* unitless */
-  const double lower_threshold = 15.0; /* mm/s */
+  const double lower_threshold = 5.0; /* mm/s */
   const double upper_threshold = 100.0; /* mm/s */
 
   /* Not necessary for stability, but reasonable constraints */
