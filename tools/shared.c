@@ -245,6 +245,8 @@ tools_parse_option(int option,
 			options->profile = LIBINPUT_CONFIG_ACCEL_PROFILE_ADAPTIVE;
 		else if (streq(optarg, "flat"))
 		      options->profile = LIBINPUT_CONFIG_ACCEL_PROFILE_FLAT;
+    else if (streq(optarg, "pl"))
+		      options->profile = LIBINPUT_CONFIG_ACCEL_PROFILE_PL;
 		else
 		      return 1;
 		break;
