@@ -252,40 +252,26 @@ touchpad_accel_profile(struct motion_filter *filter,
 	double factor; /* unitless */
 
   /* These should be configurable */
-  const double maximum_input_speed = 200.0; /* mm/s */
-  const double points[] = {
-    0.00,
-    0.20,
-    0.80,
-    1.40,
-    2.00
+  const double points[][2] = {
+    {5.0, 0.02},
+    {100.0, 2.0}
   };
-
-  /* the maximum index into the array of points */
-  const int n_max = (int) sizeof(points) / sizeof(double) - 1;
-
-  fprintf(stderr, "filter-touchpad-pl: touchpad_accel_profile %d\n", n_max);
+  const int i_max = 1;
 
 	/* Convert speed_in to mm/s because that's something one can understand */
 	speed_in = v_us2s(speed_in) * 25.4/accel_filter->dpi;
   fprintf(stderr, "speed_in: %f\n", speed_in);
 
-  /* scale speed_in from [0, maximum_input_speed] to [0, n_max] */
-  speed_in = n_max * speed_in / maximum_input_speed;
-  fprintf(stderr, "scaled speed_in: %f\n", speed_in);
-  
-  if (speed_in < 0) speed_in = 0;
-
-  const int n = (int)speed_in;
-  const double fraction = speed_in - n;
-
-  if (n < n_max) {
-    factor = points[n] + (points[n+1] - points[n]) * fraction;
-  } else {
-    factor = points[n_max];
+  if (speed_in > points[i_max][0]) factor = points[i_max][1];
+  else if (speed_in < points[0][0]) factor = points[0][1];
+  else {
+    int i = i_max;
+    while(i > 0 && points[i][0] > speed_in) i--;
+    factor = points[i][1] + (points[i+1][1] - points[i][1]) * (speed_in - points[i][0]) / (points[i+1][0] - points[i][0]);
   }
 
-  fprintf(stderr, "n: %d, fraction: %f, factor: %f\n", n, fraction, factor);
+  fprintf(stderr, "factor: %f\n", factor);
+
 	return factor;
 }
 
