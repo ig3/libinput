@@ -253,8 +253,8 @@ touchpad_accel_profile(struct motion_filter *filter,
 
   /* These should be configurable */
   const double points[][2] = {
-    {5.0, 0.02},
-    {100.0, 2.0}
+    {20.0, 0.05},
+    {100.0, 1.00}
   };
   const int i_max = 1;
 
